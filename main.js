@@ -61,6 +61,21 @@ Vue.component('product', {
             Cart</button>
         <button @click="removeFromCart">Remove from Cart</button>
 
+        <product-review @msg-review-submitted="addReview"></product-review>
+
+        <div>
+            <h2>Reviews</h2>
+            <p v-if=" reviews.length == 0 ">There are no reviews yet.</p>
+            <ul>
+                <li v-for="r in reviews">
+                    <p>{{ r.name }}</p>
+                    <p>Rating: {{ r.rating }}</p>
+                    <p>Comments: {{ r.review }}</p>
+                    <p>Would recommend: {{ r.recommendation }}</p>
+                </li>
+            </ul>
+        </div>
+
     </div>
 
     `,
@@ -76,6 +91,7 @@ Vue.component('product', {
                 { id: 2235, qty: 1, color: "blue", image:"https://www.vuemastery.com/images/challenges/vmSocks-blue-onWhite.jpg" }
             ],
             sizes: [ "small", "medium", "large" ],
+            reviews: [],
         }
     },
     methods: {
@@ -92,6 +108,10 @@ Vue.component('product', {
             this.selectedVariant = i
             // console.log( i )
         },
+        addReview( review ) {
+            console.log( review )
+            this.reviews.push( review )
+        }
     },
     // computed properties are cached
     computed: {
@@ -110,6 +130,86 @@ Vue.component('product', {
         shipping() {
             if (this.premium) { return "Free" }
             else { return 2.99 }
+        }
+    }
+})
+
+Vue.component('product-review', {
+    template: `
+    <form class="review-form" @submit.prevent="onSubmit">
+    <!-- submit.prevent to prevent default action of page refreshing when hitting button. -->
+
+        <p v-if="errors.length > 0">
+            <b>Please correct the following error(s):</b>
+            <ul>
+                <li v-for="e in errors">
+                    {{ e }}
+                </li>
+            </ul>
+        </p>
+
+        <p>
+            <label for="name">Name:</label>
+            <input id="name" v-model="name">
+        </p>
+    
+        <p>
+            <label for="review">Review:</label>
+            <textarea id="review" v-model="review"></textarea>
+        </p>
+
+        <p>
+            <label for="rating">Rating:</label>
+            <select id="rating" v-model.number="rating">
+                <option>5</option>
+                <option>4</option>
+                <option>3</option>
+                <option>2</option>
+                <option>1</option>
+            </select>
+        </p>
+        <p>
+            <label for="recommendation">Would you recommend this product?</label>
+            <input type="radio" id="recommendationYes" name="recommendation" value="yes" v-model="recommendation">Yes
+            <input type="radio" id="recommendationNo" name="recommendation" value="no" v-model="recommendation">No
+        </p>
+        <p>
+            <input type="submit" value="Submit">
+        </p>
+    </form>
+
+    `,
+    data() {
+        return {
+            name: null,
+            review: null,
+            rating: null,
+            errors: [],
+            recommendation: null,
+        }
+    },
+    methods: {
+        onSubmit() {
+            this.errors = []
+            if (this.name && this.review && this.rating && this.recommendation) {
+                let productReview = {
+                    name: this.name,
+                    review: this.review,
+                    rating: this.rating,
+                    recommendation: this.recommendation,
+                }
+                this.$emit( 'msg-review-submitted', productReview )
+                this.name = null
+                this.review = null
+                this.rating = null
+                this.recommendation = null
+            }
+            else {
+                if (!this.name) this.errors.push("Name required.")
+                if (!this.review) this.errors.push("Review required.")
+                if (!this.rating) this.errors.push("Rating required.")
+                if (!this.recommendation) this.errors.push("Recommendation required.")
+            }
         }
     }
 })
