@@ -1,3 +1,5 @@
+var eventBus = new Vue()
+
 Vue.component('product-details', {
     props: {
         details: {
@@ -43,10 +45,6 @@ Vue.component('product', {
             <h1>{{ title }}</h1>
             <p v-if="inStock">In Stock</p>
             <p v-else :class="{ outOfStock: !inStock }">Out of Stock</p>
-            <p>Shipping: {{ shipping }}</p>
-
-            <product-details :details="details"></product-details>
-
 
             <div v-for="(v, i) in variants" :key="v.id" class="color-box" :style="{ backgroundColor: v.color }"
                 @mouseover="updateProduct( i )">
@@ -61,20 +59,7 @@ Vue.component('product', {
             Cart</button>
         <button @click="removeFromCart">Remove from Cart</button>
 
-        <product-review @msg-review-submitted="addReview"></product-review>
-
-        <div>
-            <h2>Reviews</h2>
-            <p v-if=" reviews.length == 0 ">There are no reviews yet.</p>
-            <ul>
-                <li v-for="r in reviews">
-                    <p>{{ r.name }}</p>
-                    <p>Rating: {{ r.rating }}</p>
-                    <p>Comments: {{ r.review }}</p>
-                    <p>Would recommend: {{ r.recommendation }}</p>
-                </li>
-            </ul>
-        </div>
+        <product-tabs :reviews="reviews" :premium="premium" :details="details" ></product-tabs>
 
     </div>
 
@@ -108,10 +93,6 @@ Vue.component('product', {
             this.selectedVariant = i
             // console.log( i )
         },
-        addReview( review ) {
-            console.log( review )
-            this.reviews.push( review )
-        }
     },
     // computed properties are cached
     computed: {
@@ -127,10 +108,6 @@ Vue.component('product', {
         onSaleText() {
             if ( this.onSale ) { return this.title + ' is on sale!' }
         },
-        shipping() {
-            if (this.premium) { return "Free" }
-            else { return 2.99 }
-        }
     }
 })
 
@@ -198,7 +175,7 @@ Vue.component('product-review', {
                     rating: this.rating,
                     recommendation: this.recommendation,
                 }
-                this.$emit( 'msg-review-submitted', productReview )
+                eventBus.$emit( 'msg-review-submitted', productReview )
                 this.name = null
                 this.review = null
                 this.rating = null
@@ -210,6 +187,74 @@ Vue.component('product-review', {
                 if (!this.rating) this.errors.push("Rating required.")
                 if (!this.recommendation) this.errors.push("Recommendation required.")
             }
+        }
+    }
+})
+
+Vue.component('product-tabs', {
+    props: {
+        reviews: {
+            type: Array, required: true
+        },
+        premium: {
+            type: Boolean, required: true
+        },
+        details: {
+            type: Array, required: true
+        },
+    },
+    template: `
+    <div>
+        <span class="tab"
+            :class=" { activeTab: selectedTab === tab } "
+            v-for="(tab, index) in tabs" 
+            :key="index"
+            @click="selectedTab = tab"
+            >
+            {{ tab }}
+        </span>
+
+        <div v-show=" selectedTab === 'Reviews' ">
+            <h2>Reviews</h2>
+            <p v-if=" reviews.length == 0 ">There are no reviews yet.</p>
+            <ul>
+                <li v-for="r in reviews">
+                    <p>{{ r.name }}</p>
+                    <p>Rating: {{ r.rating }}</p>
+                    <p>Comments: {{ r.review }}</p>
+                    <p>Would recommend: {{ r.recommendation }}</p>
+                </li>
+            </ul>
+        </div>
+
+        <product-review
+            v-show=" selectedTab === 'Make a Review' "></product-review>
+
+        <div v-show=" selectedTab === 'Shipping' ">
+            <p>Shipping: {{ shipping }}</p>
+        </div>
+
+        <div v-show=" selectedTab === 'Details' " >
+            <product-details :details="details"></product-details>
+        </div>
+
+    </div>
+    `,
+    data() {
+        return {
+            tabs: ['Reviews', 'Make a Review', 'Shipping', 'Details'],
+            selectedTab: 'Reviews'
+        }
+    },
+    mounted() {
+        eventBus.$on( 'msg-review-submitted', review => {
+            this.reviews.push( review )
+        } )
+    },
+    computed: {
+        shipping() {
+            if (this.premium) { return "Free" }
+            else { return 2.99 }
         }
     }
 })
